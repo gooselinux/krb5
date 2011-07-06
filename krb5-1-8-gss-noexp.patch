@@ -1,0 +1,138 @@
+Pending change to not fail wrap/unwrap/seal/unseal after the ticket
+that was used for authentication expires.
+
+Index: src/lib/gssapi/krb5/k5sealiov.c
+===================================================================
+--- src/lib/gssapi/krb5/k5sealiov.c	(revision 24129)
++++ src/lib/gssapi/krb5/k5sealiov.c	(revision 24130)
+@@ -279,7 +279,6 @@
+ {
+     krb5_gss_ctx_id_rec *ctx;
+     krb5_error_code code;
+-    krb5_timestamp now;
+     krb5_context context;
+ 
+     if (qop_req != 0) {
+@@ -298,19 +297,12 @@
+         return GSS_S_NO_CONTEXT;
+     }
+ 
+-    context = ctx->k5_context;
+-    code = krb5_timeofday(context, &now);
+-    if (code != 0) {
+-        *minor_status = code;
+-        save_error_info(*minor_status, context);
+-        return GSS_S_FAILURE;
+-    }
+-
+     if (conf_req_flag && kg_integ_only_iov(iov, iov_count)) {
+         /* may be more sensible to return an error here */
+         conf_req_flag = FALSE;
+     }
+ 
++    context = ctx->k5_context;
+     switch (ctx->proto) {
+     case 0:
+         code = make_seal_token_v1_iov(context, ctx, conf_req_flag,
+@@ -333,7 +325,7 @@
+ 
+     *minor_status = 0;
+ 
+-    return (ctx->krb_times.endtime < now) ? GSS_S_CONTEXT_EXPIRED : GSS_S_COMPLETE;
++    return GSS_S_COMPLETE;
+ }
+ 
+ #define INIT_IOV_DATA(_iov)     do { (_iov)->buffer.value = NULL;       \
+Index: src/lib/gssapi/krb5/k5unsealiov.c
+===================================================================
+--- src/lib/gssapi/krb5/k5unsealiov.c	(revision 24129)
++++ src/lib/gssapi/krb5/k5unsealiov.c	(revision 24130)
+@@ -52,7 +52,6 @@
+     int signalg;
+     krb5_checksum cksum;
+     krb5_checksum md5cksum;
+-    krb5_timestamp now;
+     size_t cksum_len = 0;
+     size_t conflen = 0;
+     int direction;
+@@ -280,19 +279,6 @@
+     if (qop_state != NULL)
+         *qop_state = GSS_C_QOP_DEFAULT;
+ 
+-    code = krb5_timeofday(context, &now);
+-    if (code != 0) {
+-        *minor_status = code;
+-        retval = GSS_S_FAILURE;
+-        goto cleanup;
+-    }
+-
+-    if (now > ctx->krb_times.endtime) {
+-        *minor_status = 0;
+-        retval = GSS_S_CONTEXT_EXPIRED;
+-        goto cleanup;
+-    }
+-
+     if ((ctx->initiate && direction != 0xff) ||
+         (!ctx->initiate && direction != 0)) {
+         *minor_status = (OM_uint32)G_BAD_DIRECTION;
+Index: src/lib/gssapi/krb5/k5seal.c
+===================================================================
+--- src/lib/gssapi/krb5/k5seal.c	(revision 24129)
++++ src/lib/gssapi/krb5/k5seal.c	(revision 24130)
+@@ -328,7 +328,6 @@
+ {
+     krb5_gss_ctx_id_rec *ctx;
+     krb5_error_code code;
+-    krb5_timestamp now;
+     krb5_context context;
+ 
+     output_message_buffer->length = 0;
+@@ -359,12 +358,6 @@
+     }
+ 
+     context = ctx->k5_context;
+-    if ((code = krb5_timeofday(context, &now))) {
+-        *minor_status = code;
+-        save_error_info(*minor_status, context);
+-        return(GSS_S_FAILURE);
+-    }
+-
+     switch (ctx->proto)
+     {
+     case 0:
+@@ -396,5 +389,5 @@
+         *conf_state = conf_req_flag;
+ 
+     *minor_status = 0;
+-    return((ctx->krb_times.endtime < now)?GSS_S_CONTEXT_EXPIRED:GSS_S_COMPLETE);
++    return(GSS_S_COMPLETE);
+ }
+Index: src/lib/gssapi/krb5/k5unseal.c
+===================================================================
+--- src/lib/gssapi/krb5/k5unseal.c	(revision 24129)
++++ src/lib/gssapi/krb5/k5unseal.c	(revision 24130)
+@@ -79,7 +79,6 @@
+     krb5_checksum md5cksum;
+     krb5_data plaind;
+     char *data_ptr;
+-    krb5_timestamp now;
+     unsigned char *plain;
+     unsigned int cksum_len = 0;
+     size_t plainlen;
+@@ -441,16 +440,6 @@
+     if (qop_state)
+         *qop_state = GSS_C_QOP_DEFAULT;
+ 
+-    if ((code = krb5_timeofday(context, &now))) {
+-        *minor_status = code;
+-        return(GSS_S_FAILURE);
+-    }
+-
+-    if (now > ctx->krb_times.endtime) {
+-        *minor_status = 0;
+-        return(GSS_S_CONTEXT_EXPIRED);
+-    }
+-
+     /* do sequencing checks */
+ 
+     if ((ctx->initiate && direction != 0xff) ||

@@ -1,0 +1,195 @@
+Change the absolute paths included in the man pages so that the correct
+values can be dropped in by config.status.  After applying this patch,
+these files should be renamed to their ".in" counterparts, and then the
+configure scripts should be rebuilt.  Originally RT#6525
+
+diff -up krb5-1.8/src/aclocal.m4.manpaths krb5-1.8/src/aclocal.m4
+--- krb5-1.8/src/aclocal.m4.manpaths	2010-03-05 10:55:28.000000000 -0500
++++ krb5-1.8/src/aclocal.m4	2010-03-05 10:55:29.000000000 -0500
+@@ -1770,3 +1770,24 @@ AC_SUBST(PAM_LIBS)
+ AC_SUBST(PAM_MAN)
+ AC_SUBST(NON_PAM_MAN)
+ ])dnl
++AC_DEFUN(V5_AC_OUTPUT_MANPAGE,[
++mansysconfdir=$sysconfdir
++mansysconfdir=`eval echo $mansysconfdir | sed -e "s,NONE,$prefix,g"`
++mansysconfdir=`eval echo $mansysconfdir | sed -e "s,NONE,$ac_default_prefix,g"`
++mansbindir=$sbindir
++mansbindir=`eval echo $mansbindir | sed -e "s,NONE,$exec_prefix,g"`
++mansbindir=`eval echo $mansbindir | sed -e "s,NONE,$prefix,g"`
++mansbindir=`eval echo $mansbindir | sed -e "s,NONE,$ac_default_prefix,g"`
++manlocalstatedir=$localstatedir
++manlocalstatedir=`eval echo $manlocalstatedir | sed -e "s,NONE,$prefix,g"`
++manlocalstatedir=`eval echo $manlocalstatedir | sed -e "s,NONE,$ac_default_prefix,g"`
++manlibexecdir=$libexecdir
++manlibexecdir=`eval echo $manlibexecdir | sed -e "s,NONE,$exec_prefix,g"`
++manlibexecdir=`eval echo $manlibexecdir | sed -e "s,NONE,$prefix,g"`
++manlibexecdir=`eval echo $manlibexecdir | sed -e "s,NONE,$ac_default_prefix,g"`
++AC_SUBST(mansysconfdir)
++AC_SUBST(mansbindir)
++AC_SUBST(manlocalstatedir)
++AC_SUBST(manlibexecdir)
++AC_CONFIG_FILES($1)
++])
+diff -up krb5-1.8/src/appl/sample/sserver/sserver.M.manpaths krb5-1.8/src/appl/sample/sserver/sserver.M
+--- krb5-1.8/src/appl/sample/sserver/sserver.M.manpaths	1999-09-24 17:20:59.000000000 -0400
++++ krb5-1.8/src/appl/sample/sserver/sserver.M	2010-03-05 10:55:29.000000000 -0500
+@@ -59,7 +59,7 @@ option allows for a different keytab tha
+ using a line in
+ /etc/inetd.conf that looks like this:
+ .PP
+-sample  stream  tcp     nowait  root /usr/local/sbin/sserver	sserver
++sample  stream  tcp     nowait  root @mansbindir@/sserver	sserver
+ .PP
+ Since \fBsample\fP is normally not a port defined in /etc/services, you will
+ usually have to add a line to /etc/services which looks like this:
+diff -up krb5-1.8/src/config-files/kdc.conf.M.manpaths krb5-1.8/src/config-files/kdc.conf.M
+--- krb5-1.8/src/config-files/kdc.conf.M.manpaths	2010-01-04 14:34:33.000000000 -0500
++++ krb5-1.8/src/config-files/kdc.conf.M	2010-03-05 10:55:29.000000000 -0500
+@@ -82,14 +82,14 @@ This
+ .B string
+ specifies the location of the access control list (acl) file that
+ kadmin uses to determine which principals are allowed which permissions
+-on the database. The default value is /usr/local/var/krb5kdc/kadm5.acl.
++on the database. The default value is @manlocalstatedir@/krb5kdc/kadm5.acl.
+ 
+ .IP admin_keytab
+ This
+ .B string
+ Specifies the location of the keytab file that kadmin uses to
+ authenticate to the database.  The default value is
+-/usr/local/var/krb5kdc/kadm5.keytab.
++@manlocalstatedir@/krb5kdc/kadm5.keytab.
+ 
+ .IP database_name
+ This
+@@ -254,7 +254,7 @@ tickets should be checked against the tr
+ realm names and the [capaths] section of its krb5.conf file
+ 
+ .SH FILES 
+-/usr/local/var/krb5kdc/kdc.conf
++@manlocalstatedir@/krb5kdc/kdc.conf
+ 
+ .SH SEE ALSO
+ krb5.conf(5), krb5kdc(8)
+diff -up krb5-1.8/src/config-files/krb5.conf.M.manpaths krb5-1.8/src/config-files/krb5.conf.M
+--- krb5-1.8/src/config-files/krb5.conf.M.manpaths	2010-02-25 15:14:21.000000000 -0500
++++ krb5-1.8/src/config-files/krb5.conf.M	2010-03-05 10:55:29.000000000 -0500
+@@ -651,6 +651,6 @@ is whitespace-separated. The LDAP server
+ This LDAP specific tag indicates the number of connections to be maintained per
+ LDAP server.
+ .SH FILES 
+-/etc/krb5.conf
++@mansysconfdir@/krb5.conf
+ .SH SEE ALSO
+ syslog(3)
+diff -up krb5-1.8/src/configure.in.manpaths krb5-1.8/src/configure.in
+--- krb5-1.8/src/configure.in.manpaths	2010-03-05 10:55:29.000000000 -0500
++++ krb5-1.8/src/configure.in	2010-03-05 10:55:29.000000000 -0500
+@@ -1054,6 +1054,16 @@ fi
+ KRB5_WITH_PAM
+ 
+ AC_CONFIG_FILES(krb5-config, [chmod +x krb5-config])
++
++V5_AC_OUTPUT_MANPAGE([
++	appl/sample/sserver/sserver.M
++	config-files/kdc.conf.M
++	config-files/krb5.conf.M
++	kadmin/cli/kadmin.M
++	slave/kpropd.M
++	slave/kprop.M
++])
++
+ V5_AC_OUTPUT_MAKEFILE(.
+ 
+ 	util util/support util/profile util/send-pr
+diff -up krb5-1.8/src/kadmin/cli/kadmin.M.manpaths krb5-1.8/src/kadmin/cli/kadmin.M
+--- krb5-1.8/src/kadmin/cli/kadmin.M.manpaths	2010-01-04 14:59:25.000000000 -0500
++++ krb5-1.8/src/kadmin/cli/kadmin.M	2010-03-05 10:55:29.000000000 -0500
+@@ -869,9 +869,9 @@ option is specified, less verbose status
+ .RS
+ .TP
+ EXAMPLE:
+-kadmin: ktremove -k /usr/local/var/krb5kdc/kadmind.keytab kadmin/admin
++kadmin: ktremove -k @manlocalstatedir@/krb5kdc/kadmind.keytab kadmin/admin
+ Entry for principal kadmin/admin with kvno 3 removed
+-	from keytab WRFILE:/usr/local/var/krb5kdc/kadmind.keytab.
++	from keytab WRFILE:@manlocalstatedir@/krb5kdc/kadmind.keytab.
+ kadmin:
+ .RE
+ .fi
+@@ -913,7 +913,7 @@ passwords.
+ .SH HISTORY
+ The
+ .B kadmin
+-prorgam was originally written by Tom Yu at MIT, as an interface to the
++program was originally written by Tom Yu at MIT, as an interface to the
+ OpenVision Kerberos administration program.
+ .SH SEE ALSO
+ .IR kerberos (1),
+diff -up krb5-1.8/src/slave/kpropd.M.manpaths krb5-1.8/src/slave/kpropd.M
+--- krb5-1.8/src/slave/kpropd.M.manpaths	2009-12-30 23:21:34.000000000 -0500
++++ krb5-1.8/src/slave/kpropd.M	2010-03-05 10:55:29.000000000 -0500
+@@ -74,7 +74,7 @@ Normally, kpropd is invoked out of 
+ This is done by adding a line to the inetd.conf file which looks like
+ this:
+ 
+-kprop	stream	tcp	nowait	root	/usr/local/sbin/kpropd	kpropd
++kprop	stream	tcp	nowait	root	@mansbindir@/kpropd	kpropd
+ 
+ However, kpropd can also run as a standalone daemon, if the
+ .B \-S
+@@ -111,13 +111,13 @@ is used.
+ \fB\-f\fP \fIfile\fP
+ specifies the filename where the dumped principal database file is to be
+ stored; by default the dumped database file is KPROPD_DEFAULT_FILE
+-(normally /usr/local/var/krb5kdc/from_master).
++(normally @manlocalstatedir@/krb5kdc/from_master).
+ .TP
+ .B \-p
+ allows the user to specify the pathname to the
+ .IR kdb5_util (8)
+ program; by default the pathname used is KPROPD_DEFAULT_KDB5_UTIL
+-(normally /usr/local/sbin/kdb5_util).
++(normally @mansbindir@/kdb5_util).
+ .TP
+ .B \-S
+ turn on standalone mode.  Normally, kpropd is invoked out of
+@@ -148,14 +148,14 @@ mode.
+ allows the user to specify the path to the
+ kpropd.acl
+ file; by default the path used is KPROPD_ACL_FILE
+-(normally /usr/local/var/krb5kdc/kpropd.acl).
++(normally @manlocalstatedir@/krb5kdc/kpropd.acl).
+ .SH FILES
+ .TP "\w'kpropd.acl\ \ 'u"
+ kpropd.acl
+ Access file for
+ .BR kpropd ;
+ the default location is KPROPD_ACL_FILE (normally
+-/usr/local/var/krb5kdc/kpropd.acl).
++@manlocalstatedir@/krb5kdc/kpropd.acl).
+ Each entry is a line containing the principal of a host from which the
+ local machine will allow Kerberos database propagation via kprop.
+ .SH SEE ALSO
+diff -up krb5-1.8/src/slave/kprop.M.manpaths krb5-1.8/src/slave/kprop.M
+--- krb5-1.8/src/slave/kprop.M.manpaths	1999-09-24 17:20:59.000000000 -0400
++++ krb5-1.8/src/slave/kprop.M	2010-03-05 10:55:29.000000000 -0500
+@@ -39,7 +39,7 @@ Kerberos server to a slave Kerberos serv
+ This is done by transmitting the dumped database file to the slave
+ server over an encrypted, secure channel.  The dump file must be created
+ by kdb5_util, and is normally KPROP_DEFAULT_FILE
+-(/usr/local/var/krb5kdc/slave_datatrans).
++(@manlocalstatedir@/krb5kdc/slave_datatrans).
+ .SH OPTIONS
+ .TP
+ \fB\-r\fP \fIrealm\fP
+@@ -51,7 +51,7 @@ is used.
+ \fB\-f\fP \fIfile\fP
+ specifies the filename where the dumped principal database file is to be
+ found; by default the dumped database file is KPROP_DEFAULT_FILE
+-(normally /usr/local/var/krb5kdc/slave_datatrans).
++(normally @manlocalstatedir@/krb5kdc/slave_datatrans).
+ .TP
+ \fB\-P\fP \fIport\fP
+ specifies the port to use to contact the

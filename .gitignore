@@ -1,0 +1,17 @@
+krb5_prop.portreserve
+kerberos-adm.portreserve
+kerberos-iv.portreserve
+ksu.pamd
+krb5-1.8-manpaths.txt
+krb5-tex-pdf.sh
+krb5-1.8.2-pdf.tar.gz
+kadmin.sysconfig
+krb5kdc.sysconfig
+kadm5.acl
+kdc.conf
+krb5.conf
+krb5kdc.init
+kadmind.init
+kpropd.init
+krb5-1.8.2.tar.gz.asc
+krb5-1.8.2.tar.gz

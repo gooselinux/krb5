@@ -1,0 +1,13 @@
+Set the default PATH to the one set by login.
+
+diff -up krb5-1.8/src/clients/ksu/Makefile.in.ksu-path krb5-1.8/src/clients/ksu/Makefile.in
+--- krb5-1.8/src/clients/ksu/Makefile.in.ksu-path	2010-03-05 10:58:25.000000000 -0500
++++ krb5-1.8/src/clients/ksu/Makefile.in	2010-03-05 10:58:25.000000000 -0500
+@@ -1,6 +1,6 @@
+ mydir=clients/ksu
+ BUILDTOP=$(REL)..$(S)..
+-DEFINES = -DGET_TGT_VIA_PASSWD -DPRINC_LOOK_AHEAD -DCMD_PATH='"/bin /local/bin"'
++DEFINES = -DGET_TGT_VIA_PASSWD -DPRINC_LOOK_AHEAD -DCMD_PATH='"/usr/local/sbin /usr/local/bin /sbin /usr/sbin /bin /usr/bin"'
+ DEFS=
+ 
+ PROG_LIBPATH=-L$(TOPLIBD)
