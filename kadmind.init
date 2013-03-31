@@ -1,0 +1,114 @@
+#!/bin/bash
+#
+# kadmind      Start and stop the Kerberos 5 administrative server.
+#
+# chkconfig:   - 35 65
+# description: Kerberos 5 is a trusted third-party authentication system.  \
+#	       This script starts and stops the Kerberos 5 administrative \
+#              server, which should only be run on the master server for a \
+#              realm.
+# processname: kadmind
+# config: /etc/sysconfig/kadmin
+#
+
+### BEGIN INIT INFO
+# Provides: kadmin
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Should-Start: portreserve
+# Default-Start:
+# Default-Stop: 0 1 2 3 4 5 6
+# Short-Description: start and stop the Kerberos 5 admin server
+# Description: The kadmind service allows administrators to remotely manage \
+#              the Kerberos 5 realm database.  It should only be run on a \
+#              master KDC.
+### END INIT INFO
+
+# Get config.
+. /etc/sysconfig/network
+
+# Get config.
+[ -r /etc/sysconfig/kadmin ] && . /etc/sysconfig/kadmin
+
+# Source function library.
+. /etc/init.d/functions
+prog="Kerberos 5 Admin Server"
+kadmind=/usr/sbin/kadmind
+
+RETVAL=0
+
+# Shell functions to cut down on useless shell instances.
+start() {
+  	if [ ! -f /var/kerberos/krb5kdc/principal ] ; then
+	    # Make an educated guess -- if they're using kldap somewhere,
+	    # then we don't know for sure that this is an error.
+  	    if ! grep -q 'db_library.*=.*kldap' /etc/krb5.conf ; then
+	        echo $"Error. Default principal database does not exist."
+	        exit 1
+	    fi
+	fi
+  	if [ -f /var/kerberos/krb5kdc/kpropd.acl ] ; then
+	    echo $"Error. This appears to be a slave server, found kpropd.acl"
+	    exit 6
+	else
+	    [ -x $kadmind ] || exit 5
+	fi
+	echo -n $"Starting $prog: "
+	# tell portreserve to release the kerberos-adm port
+	[ -x /sbin/portrelease ] && /sbin/portrelease kerberos-adm &>/dev/null || :
+	daemon ${kadmind} ${KRB5REALM:+-r ${KRB5REALM}} $KADMIND_ARGS
+	RETVAL=$?
+	echo
+	if test $RETVAL -ne 0 ; then
+	    if status -l kadmin ${kadmind} > /dev/null ; then
+		RETVAL=0
+	    fi
+	fi
+	[ $RETVAL = 0 ] && touch /var/lock/subsys/kadmin
+}
+stop() {
+	echo -n $"Stopping $prog: "
+	killproc ${kadmind}
+	RETVAL=$?
+	echo
+	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/kadmin
+}
+reload() {
+	echo -n $"Reopening $prog log file: "
+	killproc ${kadmind} -HUP
+	RETVAL=$?
+	echo
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart)
+	stop
+	start
+	;;
+  status)
+	status -l kadmin ${kadmind}
+	RETVAL=$?
+	;;
+  reload)
+	reload
+	;;
+  condrestart)
+	if [ -f /var/lock/subsys/kadmin ] ; then
+		stop
+		start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|condrestart|reload|restart}"
+	RETVAL=2
+	;;
+esac
+
+exit $RETVAL

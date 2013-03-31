@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# kpropd.init  Start and stop the Kerberos 5 propagation client.
+#
+# chkconfig:   - 35 65
+# description: Kerberos 5 is a trusted third-party authentication system.  \
+#	       This script starts and stops the service that allows this \
+#              KDC to receive updates from your master KDC.
+# processname: kpropd
+#
+
+### BEGIN INIT INFO
+# Provides: kprop
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Should-Start: portreserve
+# Default-Start:
+# Default-Stop: 0 1 2 3 4 5 6
+# Short-Description: start and stop the Kerberos 5 propagation client
+# Description: The kpropd service accepts database updates pushed to it from \
+#              the master KDC.  It will never be needed on a master KDC.
+### END INIT INFO
+
+# Get config.
+. /etc/sysconfig/network
+
+# Source function library.
+. /etc/init.d/functions
+
+RETVAL=0
+prog="Kerberos 5 Propagation Server"
+kpropd=/usr/sbin/kpropd
+
+# Shell functions to cut down on useless shell instances.
+start() {
+  	[ -f /var/kerberos/krb5kdc/kpropd.acl ] || exit 6
+	[ -x $kpropd ] || exit 5
+	echo -n $"Starting $prog: "
+	# tell portreserve to release the krb5_prop port
+	[ -x /sbin/portrelease ] && /sbin/portrelease krb5_prop &>/dev/null || :
+	daemon ${kpropd} -S
+	RETVAL=$?
+	echo
+	if test $RETVAL -ne 0 ; then
+	    if status -l kprop ${kpropd} > /dev/null ; then
+		RETVAL=0
+	    fi
+	fi
+	[ $RETVAL = 0 ] && touch /var/lock/subsys/kprop
+}
+stop() {
+	echo -n $"Stopping $prog: "
+	killproc ${kpropd}
+	RETVAL=$?
+	echo
+	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/kprop
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  # We don't really "do" reload, so treat it as a restart.
+  restart|force-reload)
+	stop
+	start
+	;;
+  reload)
+	echo "can't reload configuration, you have to restart it"
+	RETVAL=3
+	;;
+  status)
+	status -l kprop ${kpropd}
+	RETVAL=$?
+	;;
+  condrestart)
+	if [ -f /var/lock/subsys/kprop ] ; then
+		stop
+		start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|reload|restart|condrestart}"
+	RETVAL=2
+	;;
+esac
+
+exit $RETVAL

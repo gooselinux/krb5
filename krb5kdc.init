@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+# krb5kdc      Start and stop the Kerberos 5 servers.
+#
+# chkconfig:   - 35 65
+# description: Kerberos 5 is a trusted third-party authentication system.  \
+#	       This script starts and stops the server that Kerberos 5 \
+#	       clients need to connect to in order to obtain credentials.
+# processname: krb5kdc
+# config: /etc/sysconfig/krb5kdc
+#
+
+### BEGIN INIT INFO
+# Provides: krb5kdc
+# Required-Start: $local_fs $network
+# Required-Stop: $local_fs $network
+# Should-Start: portreserve
+# Default-Start:
+# Default-Stop: 0 1 2 3 4 5 6
+# Short-Description: start and stop the Kerberos 5 KDC
+# Description: The krb5kdc is the Kerberos 5 key distribution center, which \
+#              issues credentials to Kerberos 5 clients.
+### END INIT INFO
+
+# Get config.
+. /etc/sysconfig/network
+
+# Get config.
+[ -r /etc/sysconfig/krb5kdc ] && . /etc/sysconfig/krb5kdc
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+prog="Kerberos 5 KDC"
+krb5kdc=/usr/sbin/krb5kdc
+
+# Shell functions to cut down on useless shell instances.
+start() {
+	[ -x $krb5kdc ] || exit 5
+	echo -n $"Starting $prog: "
+	# tell portreserve to release the kerberos-iv port
+	[ -x /sbin/portrelease ] && /sbin/portrelease kerberos-iv &>/dev/null || :
+	daemon ${krb5kdc} ${KRB5REALM:+-r ${KRB5REALM}} $KRB5KDC_ARGS
+	RETVAL=$?
+	echo
+	if test $RETVAL -ne 0 ; then
+	    if status ${krb5kdc} > /dev/null ; then
+		RETVAL=0
+	    fi
+	fi
+	[ $RETVAL = 0 ] && touch /var/lock/subsys/krb5kdc
+}
+stop() {
+	echo -n $"Stopping $prog: "
+	killproc ${krb5kdc}
+	RETVAL=$?
+	echo
+	[ $RETVAL = 0 ] && rm -f /var/lock/subsys/krb5kdc
+}
+reload() {
+	echo -n $"Reopening $prog log file: "
+	killproc ${krb5kdc} -HUP
+        RETVAL=$?
+	echo
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart)
+	stop
+	start
+	;;
+  reload)
+        reload
+        ;;
+  status)
+	status ${krb5kdc}
+        RETVAL=$?
+	;;
+  condrestart)
+	if [ -f /var/lock/subsys/krb5kdc ] ; then
+		stop
+		start
+	fi
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|reload|restart|condrestart}"
+	RETVAL=2
+	;;
+esac
+
+exit $RETVAL
