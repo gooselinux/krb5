@@ -5,7 +5,7 @@
 Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.8.2
-Release: 3%{?dist}.3
+Release: 3%{?dist}.4
 # Maybe we should explode from the now-available-to-everybody tarball instead?
 # http://web.mit.edu/kerberos/dist/krb5/1.8/krb5-1.8.2-signed.tar
 Source0: krb5-%{version}.tar.gz
@@ -51,6 +51,8 @@ Patch74: krb5-trunk-key_usage.patch
 Patch75: krb5-trunk-signed.patch
 Patch76: krb5-1.8.2-1.8.3-crypto.patch
 Patch77: krb5-1.8-MITKRB5SA-2010-007.patch
+Patch78: krb5-1.8-MITKRB5SA-2011-001.patch
+Patch79: krb5-1.8-MITKRB5SA-2011-002.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -192,6 +194,8 @@ ln -s NOTICE LICENSE
 %patch75 -p0 -b .signed
 %patch76 -p1 -b .1.8.2-1.8.3-crypto
 %patch77 -p1 -b .2010-007
+%patch78 -p1 -b .2011-001
+%patch79 -p1 -b .2011-002
 gzip doc/*.ps
 
 sed -i -e '1s!\[twoside\]!!;s!%\(\\usepackage{hyperref}\)!\1!' doc/api/library.tex
@@ -633,23 +637,28 @@ exit 0
 %{_sbindir}/uuserver
 
 %changelog
-* Fri Nov  5 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3.3
+* Thu Jan 20 2011 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-3.4
+- add upstream patches to fix standalone kpropd exiting if the per-client
+  child process exits with an error, and hang or crash in the KDC when using
+  the LDAP kdb backend (CVE-2010-4022, CVE-2011-0281, CVE-2011-0282, #671101)
+
+* Fri Nov  5 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-3.3
 - pull up crypto changes made between 1.8.2 and 1.8.3 to fix upstream #6751,
   assumed to already be there for the next fix
 - incorporate candidate patch to fix various issues from MITKRB5-SA-2010-007
   (CVE-2010-1323, CVE-2010-1324, CVE-2010-4020, #651962)
 
-* Wed Oct 20 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3.2
+* Wed Oct 20 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-3.2
 - fix reading of keyUsage extensions when attempting to select pkinit client
   certs (part of #644825, RT#6775)
 - fix selection of pkinit client certs when one or more don't include a
   subjectAltName extension (part of #644825, RT#6774)
 
-* Thu Sep 23 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3.1
+* Thu Sep 23 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-3.1
 - incorporate candidate patch to fix uninitialized pointer crash in the KDC
   (CVE-2010-1322, #636336)
 
-* Fri Sep  3 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3
+* Fri Sep  3 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.2-3
 - build with -fstack-protector-all instead of the default -fstack-protector,
   so that we add checking to more functions (i.e., all of them) (#629950)
 - also link binaries with -Wl,-z,relro,-z,now (part of #629950)
