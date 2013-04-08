@@ -1,0 +1,42 @@
+In crypto_retrieve_X509_sans(), the "i" used to hold the result of
+X509_get_ext_by_NID() is unsigned, so without a cast or changing its
+type, the comparison to -1 will always succeed.
+
+If the attempt to parse the SAN value then fails because the extension
+is not present, then crypto_retrieve_X509_sans(),
+crypto_cert_get_matching_data(), and obtain_all_cert_matching_data()
+will all return EINVAL, pkinit_cert_matching() will fail, and
+pkinit_identity_initialize() will fail.  As a result, the presence one
+candidate certificate which doesn't contain any SAN values will cause
+the client to fail to locate its certificate.  RT#6774, part of #629022.
+
+Index: src/plugins/preauth/pkinit/pkinit_crypto_openssl.c
+===================================================================
+--- src/plugins/preauth/pkinit/pkinit_crypto_openssl.c	(revision 24322)
++++ src/plugins/preauth/pkinit/pkinit_crypto_openssl.c	(revision 24323)
+@@ -1767,7 +1767,7 @@
+ {
+     krb5_error_code retval = EINVAL;
+     char buf[DN_BUF_LEN];
+-    int p = 0, u = 0, d = 0;
++    int p = 0, u = 0, d = 0, l;
+     krb5_principal *princs = NULL;
+     krb5_principal *upns = NULL;
+     unsigned char **dnss = NULL;
+@@ -1787,14 +1787,14 @@
+                       buf, sizeof(buf));
+     pkiDebug("%s: looking for SANs in cert = %s\n", __FUNCTION__, buf);
+ 
+-    if ((i = X509_get_ext_by_NID(cert, NID_subject_alt_name, -1)) >= 0) {
++    if ((l = X509_get_ext_by_NID(cert, NID_subject_alt_name, -1)) >= 0) {
+         X509_EXTENSION *ext = NULL;
+         GENERAL_NAMES *ialt = NULL;
+         GENERAL_NAME *gen = NULL;
+         int ret = 0;
+         unsigned int num_sans = 0;
+ 
+-        if (!(ext = X509_get_ext(cert, i)) || !(ialt = X509V3_EXT_d2i(ext))) {
++        if (!(ext = X509_get_ext(cert, l)) || !(ialt = X509V3_EXT_d2i(ext))) {
+             pkiDebug("%s: found no subject alt name extensions\n",
+                      __FUNCTION__);
+             goto cleanup;

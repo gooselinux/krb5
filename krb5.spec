@@ -5,7 +5,7 @@
 Summary: The Kerberos network authentication system
 Name: krb5
 Version: 1.8.2
-Release: 3%{?dist}.1
+Release: 3%{?dist}.3
 # Maybe we should explode from the now-available-to-everybody tarball instead?
 # http://web.mit.edu/kerberos/dist/krb5/1.8/krb5-1.8.2-signed.tar
 Source0: krb5-%{version}.tar.gz
@@ -47,6 +47,10 @@ Patch70: krb5-trunk-kpasswd_tcp2.patch
 Patch71: krb5-1.8-dirsrv-accountlock.patch
 Patch72: krb5-1-8-gss-noexp.patch
 Patch73: krb5-1.8.x-authdata.patch
+Patch74: krb5-trunk-key_usage.patch
+Patch75: krb5-trunk-signed.patch
+Patch76: krb5-1.8.2-1.8.3-crypto.patch
+Patch77: krb5-1.8-MITKRB5SA-2010-007.patch
 
 License: MIT
 URL: http://web.mit.edu/kerberos/www/
@@ -184,6 +188,10 @@ ln -s NOTICE LICENSE
 %patch71 -p1 -b .dirsrv-accountlock
 %patch72 -p0 -b .gss-noexp
 %patch73 -p1 -b .authdata
+%patch74 -p0 -b .key_usage
+%patch75 -p0 -b .signed
+%patch76 -p1 -b .1.8.2-1.8.3-crypto
+%patch77 -p1 -b .2010-007
 gzip doc/*.ps
 
 sed -i -e '1s!\[twoside\]!!;s!%\(\\usepackage{hyperref}\)!\1!' doc/api/library.tex
@@ -625,6 +633,18 @@ exit 0
 %{_sbindir}/uuserver
 
 %changelog
+* Fri Nov  5 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3.3
+- pull up crypto changes made between 1.8.2 and 1.8.3 to fix upstream #6751,
+  assumed to already be there for the next fix
+- incorporate candidate patch to fix various issues from MITKRB5-SA-2010-007
+  (CVE-2010-1323, CVE-2010-1324, CVE-2010-4020, #651962)
+
+* Wed Oct 20 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3.2
+- fix reading of keyUsage extensions when attempting to select pkinit client
+  certs (part of #644825, RT#6775)
+- fix selection of pkinit client certs when one or more don't include a
+  subjectAltName extension (part of #644825, RT#6774)
+
 * Thu Sep 23 2010 Nalin Dahyabhai <nalin@redhat.com> 1.8.3-3.1
 - incorporate candidate patch to fix uninitialized pointer crash in the KDC
   (CVE-2010-1322, #636336)
